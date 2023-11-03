@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <style>
+      body {
+          font-family: Arial, sans-serif;
+          background-color: #00A5CF;
+          text-align: center;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          height: 100vh;
+       }
+
+       .container {
+          background-color: #ffffff;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+          padding: 40px;
+          max-width: 400px;
+          width: 100%;
+          position: absolute;
+           top: 50%;
+           left: 50%;
+           transform: translate(-50%, -50%);
+      }
+
+       h1 {
+          color: #25A18E; 
+       }
+
+       label {
+          display: block;
+          margin-top: 10px;
+       }
+
+       input[type="text"],
+       input[type="password"] {
+          width: 100%;
+          padding: 10px;
+          margin: 2px 0;
+          border: 1px solid #004E64; 
+          border-radius: 4px;
+          text-align: center; 
+       }
+
+       button {
+          background-color: #004E64;
+          color: white;
+          border: none;
+          margin: 5px 0;
+          border-radius: 4px;
+          padding: 10px 20px;
+          cursor: pointer;
+       }
+
+       button:hover {
+          background-color: #25A18E;
+       }
+       
+       .chat_container {
+          background-color: #ffffff;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+          padding: 40px;
+          text-align: left;
+          max-width: 400px;
+          width: 100%;
+          margin: 20px 0 20px 20px;
+       }
+
+       .message_container {
+          background-color: #ffffff;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+          padding: 40px;
+          text-align: left;
+          max-width: 400px;
+          width: 100%;
+          margin: 20px 0 20px 530px
+       }
+
+  </style>
+</head>
+<body>
+   <div class="container" id="sign-in-container">
+      <h2>Chat Sign In</h2>
+      <input type="text" id="username" placeholder="Enter your nickname">
+      <button onclick="signIn()">Sign In</button>
+   </div>
+    
+   <div class="container" id="chat-container" style="display: none;">
+      <div id="user-nickname" style="text-align: left; color: #25A18E; padding: 10px 0;"></div>
+      <input type="text" id="message_input" placeholder="Enter Room Name">
+      <button onclick="createNewChatRoom()">Create Room</button>
+      <div id="chatlog"></div>
+   </div>
+
+   <div class="chat_container" id="chatroom-container" style="display: none;">
+      <h2>Chat Rooms</h2>
+   </div>
+
+   <div class="message_container" id="message-container" style="display: none;">
+      <h2 id="message-title">Chat Room: __</h2>
+      <div id="active-users">Active Users: </div>
+      <!-- Container for sending messages -->
+      <div id="message-sender">
+          <input type="text" id="message_sender_input" placeholder="Type your message">
+          <button onclick="sendMessage()">Send</button>
+      </div>
+   </div>
+
+   <script src="/socket.io/socket.io.js"></script>
+   <script>
+      var socketio = io.connect();
+
+      // Sample room data stored in memory
+      var chatRooms = [];
+
+      function signIn() {
+          const username = document.getElementById('username').value;
+          if (username) {
+              // Hide sign-in and display chat interface
+              document.getElementById('sign-in-container').style.display = 'none';
+              document.getElementById('chatroom-container').style.display = 'block';
+              document.getElementById('chat-container').style.display = 'block';
+              document.getElementById('message-container').style.display = 'block';
+
+              // Display the user's nickname in the chat interface
+              document.getElementById('user-nickname').textContent = 'User: ' + username;
+          } else {
+              alert('Please enter a nickname.');
+          }
+      }
+
+      // Message handling functions
+      socketio.on("message_to_client", function(data) {
+          // Append an HR thematic break and the escaped HTML of the new message
+          document.getElementById("chatlog").appendChild(document.createElement("hr"));
+          document.getElementById("chatlog").appendChild(document.createTextNode(data['message']));
+      })
+
+      function sendMessage() {
+          var msg = document.getElementById("message_sender_input").value;
+          socketio.emit("message_to_server", { message: msg });
+          // Clear the input field after sending the message
+          document.getElementById("message_sender_input").value = "";
+      }
+
+      function createNewChatRoom() {
+          var roomNameInput = document.getElementById("message_input");
+          var roomName = roomNameInput.value.trim(); // Trim any leading/trailing whitespace
+
+          if (roomName) {
+              var roomId = chatRooms.length + 1;
+
+              var roomCreator = document.getElementById('username').value;
+
+              var newChatRoom = {
+                  id: roomId,
+                  room_name: roomName,
+                  creator: roomCreator,
+                  activeUsers: [roomCreator],
+              };
+
+              chatRooms.push(newChatRoom);
+
+              console.log(chatRooms);
+
+              roomNameInput.value = "";
+
+              updateChatRoomList();
+          } else {
+              alert('Please enter a chat room name.');
+          }
+      }
+
+      function updateMessageTitle(title) {
+         document.getElementById("message-title").textContent = title;
+      }
+
+      function updateActiveUsers(input) {
+         document.getElementById("active-users").textContent = "Active Users: " + input.join(", ");
+      }
+
+      function updateChatRoomList() {
+         var chatRoomContainer = document.getElementById("chatroom-container");
+         chatRoomContainer.innerHTML = ''; 
+
+         chatRooms.forEach(function(room) {
+              var newChatRoomButton = document.createElement("button");
+              newChatRoomButton.textContent = "Join " + room.room_name;
+              newChatRoomButton.style.margin = "5px 0";
+              newChatRoomButton.style.marginRight = "5px";
+              newChatRoomButton.addEventListener("click", function() {
+                  updateMessageTitle("Chat Room: " + room.room_name);
+                  updateActiveUsers(room.activeUsers);
+              });
+
+              chatRoomContainer.appendChild(newChatRoomButton);
+          });
+      }
+
+   </script>
+</body>
+</html>
