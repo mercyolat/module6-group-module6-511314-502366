@@ -94,7 +94,14 @@
     
    <div class="container" id="chat-container" style="display: none;">
       <div id="user-nickname" style="text-align: left; color: #25A18E; padding: 10px 0;"></div>
+
       <input type="text" id="new_chatroom" placeholder="Enter Room Name">
+      <input type="password" id="room-password" placeholder="Enter Room Password" style="display: none;"> 
+      
+      <label for="private-room-check">
+         <input type="checkbox" id="private-room-check" onchange="togglePasswordInput()"> Private Room
+       </label>
+
       <button onclick="createNewChatRoom()">Create Room</button>
       <div id="chatlog"></div>
    </div>
@@ -254,6 +261,19 @@
          alert('Please enter a nickname.');
       }
    }
+
+   // This is a JS function that toggles the password input when creating a private room
+   function togglePasswordInput() {
+      var checkBox = document.getElementById('private-room-check');
+      var passwordInput = document.getElementById('room-password');
+      
+      // If the checkbox is checked, display the password input
+      if (checkBox.checked === true){
+        passwordInput.style.display = "block";
+      } else {
+        passwordInput.style.display = "none";
+      }
+    }
       
    </script>
 </body>
