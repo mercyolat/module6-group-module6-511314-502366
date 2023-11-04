@@ -131,43 +131,82 @@
 
       var currentChatRoom = null;
 
-      function signIn(roomId) {
-         const username = document.getElementById('username').value;
-         if (username) {
-            // Hide sign-in and display chat interface
-            document.getElementById('sign-in-container').style.display = 'none';
-            document.getElementById('chatroom-container').style.display = 'block';
-            document.getElementById('chat-container').style.display = 'block';
-            document.getElementById('message-container').style.display = 'block';
-
-            // Display the user's nickname in the chat interface
-            document.getElementById('user-nickname').textContent = 'User: ' + username;
-
-            // Emit a 'user_joined' event to notify the server
-            socketio.emit('user_joined', { roomId, username });
-         } else {
-            alert('Please enter a nickname.');
-         }
-      }
-
-      function joinChatRoom(roomName) {
-         currentChatRoom = roomName;
-         updateMessageTitle("Chat Room: " + roomName);
-         socketio.emit('join_chat_room', { roomName });
-      }
+   /* -------------------------- All the socketio communication -----------------------*/
 
       // Message handling functions
       socketio.on("message_to_client", function(data) {
           // Append an HR thematic break and the escaped HTML of the new message
           document.getElementById("chatlog").appendChild(document.createElement("hr"));
           document.getElementById("chatlog").appendChild(document.createTextNode(data['message']));
-      })
+      });
+
+      socketio.on('chat_rooms_list', function(chatRooms) {
+         // First, clear the existing list
+         const chatroomContainer = document.getElementById('chatroom-container');
+         chatroomContainer.innerHTML = '';
+     
+         // Now, loop over the chatRooms and add them to the list
+         chatRooms.forEach(chatRoom => {
+             addChatRoomToList(chatRoom.roomName);
+         });
+     });
+
+      socketio.on("chat_room_created", function(data) {
+         const roomName = data.roomName;
+         addChatRoomToList(roomName);
+      });
+
+      // display current active users.
+      socketio.on('active_users', function(users) {
+         updateActiveUsers(users);
+     });
+
+
+     /* ------------Below is all the JS functions being used for socket io communication ------------*/
+
+      function joinChatRoom(roomName) {
+         currentChatRoom = roomName;
+         var userName = document.getElementById('username').value;
+         updateMessageTitle("Chat Room: " + roomName);
+         socketio.emit('join_chat_room', { roomName, userName });
+      }
+
+      // Update the chat room title
+      function updateMessageTitle(title) {
+      document.getElementById("message-title").textContent = title;
+      }
+      
+      // a helper function for adding chatroom to a list
+      function addChatRoomToList(roomName) {
+         const chatRoomElement = document.createElement("div");
+         chatRoomElement.className = "chat-room";
+      
+         const button = document.createElement("button");
+         button.textContent = `Chat Room: ${roomName}`;
+      
+         // Add an event listener to the button to handle the click
+         button.addEventListener("click", function() {
+               updateMessageTitle("Chat Room: " + roomName);
+               joinChatRoom(roomName); // Assuming you have this function to handle joining a room
+         });
+      
+         chatRoomElement.appendChild(button);
+         const chatroomContainer = document.getElementById("chatroom-container");
+         chatroomContainer.appendChild(chatRoomElement);
+      }
+
+      // This is a helper function for updating active users in the current chat room.
+      function updateActiveUsers(users) {
+         console.log('Received active users list:', users);
+         const activeUsersDiv = document.getElementById('active-users');
+         activeUsersDiv.innerHTML = 'Active Users: ' + users.join(', ');
+      }
 
       function sendMessage() {
-          var msg = document.getElementById("message_sender_input").value;
-          socketio.emit("message_to_server", { message: msg, roomName: currentChatRoom });
-          // Clear the input field after sending the message
-          document.getElementById("message_sender_input").value = "";
+         var msg = document.getElementById("message_sender_input").value;
+         socketio.emit("message_to_server", { message: msg, roomName: currentChatRoom });
+         // Clear the input field after sending the message
+         document.getElementById("message_sender_input").value = "";
       }
 
       function createNewChatRoom() {
@@ -184,34 +223,24 @@
          }
       }
 
-      socketio.on("chat_room_created", function(data) {
-         const roomName = data.roomName;
-         addChatRoomToList(roomName);
-      });
+      function signIn(roomId) {
+      const username = document.getElementById('username').value;
+      if (username) {
+         // Hide sign-in and display chat interface
+         document.getElementById('sign-in-container').style.display = 'none';
+         document.getElementById('chatroom-container').style.display = 'block';
+         document.getElementById('chat-container').style.display = 'block';
+         document.getElementById('message-container').style.display = 'block';
 
-      // Update the chat room title
-      function updateMessageTitle(title) {
-         document.getElementById("message-title").textContent = title;
+         // Display the user's nickname in the chat interface
+         document.getElementById('user-nickname').textContent = 'User: ' + username;
+
+         // Emit a 'user_joined' event to notify the server
+         socketio.emit('user_joined', { roomId, username });
+      } else {
+         alert('Please enter a nickname.');
       }
-
-      // a module for adding chatroom to a list
-      function addChatRoomToList(roomName) {
-         const chatRoomElement = document.createElement("div");
-         chatRoomElement.className = "chat-room";
-     
-         const button = document.createElement("button");
-         button.textContent = `Chat Room: ${roomName}`;
-     
-         // Add an event listener to the button to handle the click
-         button.addEventListener("click", function() {
-             updateMessageTitle("Chat Room: " + roomName);
-             joinChatRoom(roomName); // Assuming you have this function to handle joining a room
-         });
-     
-         chatRoomElement.appendChild(button);
-         const chatroomContainer = document.getElementById("chatroom-container");
-         chatroomContainer.appendChild(chatRoomElement);
-     }
+   }
       
    </script>
 </body>
