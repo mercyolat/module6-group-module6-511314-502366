@@ -1,3 +1,5 @@
+//chat-server.js
+
 // Require the packages we will use:
 const http = require("http"),
     fs = require("fs");
@@ -44,15 +46,21 @@ io.sockets.on("connection", function (socket) {
     
     socket.on('create_chat_room', function (data) {
         const { roomName, roomCreator } = data;
-        const newChatRoom = {
-            roomName,
-            creator: roomCreator,
-            activeUsers: [roomCreator],
-        };
-        chatRooms.push(newChatRoom);
-        console.log(chatRooms);
-        socket.emit('chat_room_created', { roomName });
-        io.sockets.emit('chat_rooms_list', chatRooms);
+        // Check if room already exists
+        const roomExists = chatRooms.some(room => room.roomName === roomName);
+        if (!roomExists) {
+            const newChatRoom = {
+                roomName,
+                creator: roomCreator,
+                activeUsers: [roomCreator] // roomCreator is added as the first user
+            };
+            chatRooms.push(newChatRoom);
+            socket.emit('chat_room_created', { roomName });
+            io.sockets.emit('chat_rooms_list', chatRooms);
+        } else {
+            // Emit an error to the room creator if room name is taken
+            socket.emit('chat_room_creation_error', { message: 'Room name already taken.' });
+        }
     });
 });
 
