@@ -3,87 +3,86 @@
 <head>
    <style>
       body {
-          font-family: Arial, sans-serif;
-          background-color: #00A5CF;
-          text-align: center;
-          margin: 0;
-          padding: 0;
-          display: flex;
-          height: 100vh;
-       }
-
-       .container {
-          background-color: #ffffff;
-          border: 1px solid #ccc;
-          border-radius: 5px;
-          box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-          padding: 40px;
-          max-width: 400px;
-          width: 100%;
-          position: absolute;
-           top: 50%;
-           left: 50%;
-           transform: translate(-50%, -50%);
+         font-family: Arial, sans-serif;
+         background-color: #00A5CF;
+         text-align: center;
+         margin: 0;
+         padding: 0;
+         display: flex;
+         height: 100vh;
       }
-
-       h1 {
-          color: #25A18E; 
-       }
-
-       label {
-          display: block;
-          margin-top: 10px;
-       }
-
-       input[type="text"],
-       input[type="password"] {
-          width: 100%;
-          padding: 10px;
-          margin: 2px 0;
-          border: 1px solid #004E64; 
-          border-radius: 4px;
-          text-align: center; 
-       }
-
-       button {
-          background-color: #004E64;
-          color: white;
-          border: none;
-          margin: 5px 0;
-          border-radius: 4px;
-          padding: 10px 20px;
-          cursor: pointer;
-       }
-
-       button:hover {
-          background-color: #25A18E;
-       }
-       
-       .chat_container {
-          background-color: #ffffff;
-          border: 1px solid #ccc;
-          border-radius: 5px;
-          box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-          padding: 40px;
-          text-align: left;
-          max-width: 400px;
-          width: 100%;
-          margin: 20px 0 20px 20px;
-       }
-
-       .message_container {
-          background-color: #ffffff;
-          border: 1px solid #ccc;
-          border-radius: 5px;
-          box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-          padding: 40px;
-          text-align: left;
-          max-width: 400px;
-          width: 100%;
-          margin: 20px 0 20px 530px
-       }
-
-  </style>
+      
+      .container {
+         background-color: #ffffff;
+         border: 1px solid #ccc;
+         border-radius: 5px;
+         box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+         padding: 40px;
+         max-width: 400px;
+         width: 100%;
+         position: absolute;
+         top: 50%;
+         left: 50%;
+         transform: translate(-50%, -50%);
+      }
+      
+      h1 {
+         color: #25A18E;
+      }
+      
+      label {
+         display: block;
+         margin-top: 10px;
+      }
+      
+      input[type="text"],
+      input[type="password"] {
+         width: 100%;
+         padding: 10px;
+         margin: 2px 0;
+         border: 1px solid #004E64;
+         border-radius: 4px;
+         text-align: center;
+      }
+      
+      button {
+         background-color: #004E64;
+         color: white;
+         border: none;
+         margin: 5px 0;
+         border-radius: 4px;
+         padding: 10px 20px;
+         cursor: pointer;
+      }
+      
+      button:hover {
+         background-color: #25A18E;
+      }
+      
+      .chat_container {
+         background-color: #ffffff;
+         border: 1px solid #ccc;
+         border-radius: 5px;
+         box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+         padding: 40px;
+         text-align: left;
+         max-width: 400px;
+         width: 100%;
+         margin: 20px 0 20px 20px;
+      }
+      
+      .message_container {
+         background-color: #ffffff;
+         border: 1px solid #ccc;
+         border-radius: 5px;
+         box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+         padding: 40px;
+         text-align: left;
+         max-width: 400px;
+         width: 100%;
+         margin: 20px 0 20px 530px;
+      }
+   </style>
 </head>
 <body>
    <div class="container" id="sign-in-container">
@@ -94,13 +93,19 @@
     
    <div class="container" id="chat-container" style="display: none;">
       <div id="user-nickname" style="text-align: left; color: #25A18E; padding: 10px 0;"></div>
-      <input type="text" id="message_input" placeholder="Enter Room Name">
+      <input type="text" id="new_chatroom" placeholder="Enter Room Name">
       <button onclick="createNewChatRoom()">Create Room</button>
       <div id="chatlog"></div>
    </div>
 
    <div class="chat_container" id="chatroom-container" style="display: none;">
       <h2>Chat Rooms</h2>
+      <div id="chat-rooms-list">
+         <!-- Add sample chat rooms as buttons -->
+         <button onclick="joinChatRoom('Room 1')">Room 1</button>
+         <button onclick="joinChatRoom('Room 2')">Room 2</button>
+         <button onclick="joinChatRoom('Room 3')">Room 3</button>
+      </div>
    </div>
 
    <div class="message_container" id="message-container" style="display: none;">
@@ -117,23 +122,37 @@
    <script>
       var socketio = io.connect();
 
-      // Sample room data stored in memory
-      var chatRooms = [];
+      var chatRooms = [
+         { roomName: 'Room 1', creator: 'Admin', activeUsers: ['Admin'] },
+         { roomName: 'Room 2', creator: 'Admin', activeUsers: ['Admin'] },
+         { roomName: 'Room 3', creator: 'Admin', activeUsers: ['Admin'] }
+      ];
 
-      function signIn() {
-          const username = document.getElementById('username').value;
-          if (username) {
-              // Hide sign-in and display chat interface
-              document.getElementById('sign-in-container').style.display = 'none';
-              document.getElementById('chatroom-container').style.display = 'block';
-              document.getElementById('chat-container').style.display = 'block';
-              document.getElementById('message-container').style.display = 'block';
+      var currentChatRoom = null;
 
-              // Display the user's nickname in the chat interface
-              document.getElementById('user-nickname').textContent = 'User: ' + username;
-          } else {
-              alert('Please enter a nickname.');
-          }
+      function signIn(roomId) {
+         const username = document.getElementById('username').value;
+         if (username) {
+            // Hide sign-in and display chat interface
+            document.getElementById('sign-in-container').style.display = 'none';
+            document.getElementById('chatroom-container').style.display = 'block';
+            document.getElementById('chat-container').style.display = 'block';
+            document.getElementById('message-container').style.display = 'block';
+
+            // Display the user's nickname in the chat interface
+            document.getElementById('user-nickname').textContent = 'User: ' + username;
+
+            // Emit a 'user_joined' event to notify the server
+            socketio.emit('user_joined', { roomId, username });
+         } else {
+            alert('Please enter a nickname.');
+         }
+      }
+
+      function joinChatRoom(roomName) {
+         currentChatRoom = roomName;
+         updateMessageTitle("Chat Room: " + roomName);
+         socketio.emit('join_chat_room', { roomName });
       }
 
       // Message handling functions
@@ -145,65 +164,50 @@
 
       function sendMessage() {
           var msg = document.getElementById("message_sender_input").value;
-          socketio.emit("message_to_server", { message: msg });
+          socketio.emit("message_to_server", { message: msg, roomName: currentChatRoom });
           // Clear the input field after sending the message
           document.getElementById("message_sender_input").value = "";
       }
 
       function createNewChatRoom() {
-          var roomNameInput = document.getElementById("message_input");
-          var roomName = roomNameInput.value.trim(); // Trim any leading/trailing whitespace
+         var roomNameInput = document.getElementById("new_chatroom");
+         var roomName = roomNameInput.value.trim();
 
-          if (roomName) {
-              var roomId = chatRooms.length + 1;
+         if (roomName) {
+            var roomCreator = document.getElementById('username').value;
 
-              var roomCreator = document.getElementById('username').value;
-
-              var newChatRoom = {
-                  id: roomId,
-                  room_name: roomName,
-                  creator: roomCreator,
-                  activeUsers: [roomCreator],
-              };
-
-              chatRooms.push(newChatRoom);
-
-              console.log(chatRooms);
-
-              roomNameInput.value = "";
-
-              updateChatRoomList();
-          } else {
-              alert('Please enter a chat room name.');
-          }
+            // Emit a 'create_chat_room' event to notify the server
+            socketio.emit('create_chat_room', { roomName, roomCreator });
+         } else {
+            alert('Please enter a chat room name.');
+         }
       }
 
+      socketio.on("chat_room_created", function(data) {
+         const roomName = data.roomName;
+
+         const chatRoomElement = document.createElement("div");
+         chatRoomElement.className = "chat-room";
+
+         const button = document.createElement("button");
+         button.textContent = `Chat Room: ${roomName}`;
+
+         // Add an event listener to the button to handle the click
+         button.addEventListener("click", function() {
+            // Update the chat room title when the button is clicked
+            updateMessageTitle("Chat Room: " + roomName);
+         });
+
+         chatRoomElement.appendChild(button);
+         const chatroomContainer = document.getElementById("chatroom-container");
+         chatroomContainer.appendChild(chatRoomElement);
+      });
+
+      // Update the chat room title
       function updateMessageTitle(title) {
          document.getElementById("message-title").textContent = title;
       }
-
-      function updateActiveUsers(input) {
-         document.getElementById("active-users").textContent = "Active Users: " + input.join(", ");
-      }
-
-      function updateChatRoomList() {
-         var chatRoomContainer = document.getElementById("chatroom-container");
-         chatRoomContainer.innerHTML = ''; 
-
-         chatRooms.forEach(function(room) {
-              var newChatRoomButton = document.createElement("button");
-              newChatRoomButton.textContent = "Join " + room.room_name;
-              newChatRoomButton.style.margin = "5px 0";
-              newChatRoomButton.style.marginRight = "5px";
-              newChatRoomButton.addEventListener("click", function() {
-                  updateMessageTitle("Chat Room: " + room.room_name);
-                  updateActiveUsers(room.activeUsers);
-              });
-
-              chatRoomContainer.appendChild(newChatRoomButton);
-          });
-      }
-
+      
    </script>
 </body>
 </html>

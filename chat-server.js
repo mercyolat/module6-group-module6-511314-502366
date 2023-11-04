@@ -23,10 +23,17 @@ const socketio = require("socket.io")(http, {
     wsEngine: 'ws'
 });
 
+const chatRooms = [
+    { roomName: 'Room 1', creator: 'Admin', activeUsers: ['Admin'] },
+    { roomName: 'Room 2', creator: 'Admin', activeUsers: ['Admin'] },
+    { roomName: 'Room 3', creator: 'Admin', activeUsers: ['Admin'] }
+];
+
 // Attach our Socket.IO server to our HTTP server to listen
 const io = socketio.listen(server);
 io.sockets.on("connection", function (socket) {
     // This callback runs when a new Socket.IO connection is established.
+    socket.emit('chat_rooms_list', chatRooms);
 
     socket.on('message_to_server', function (data) {
         // This callback runs when the server receives a new message from the client.
@@ -34,5 +41,19 @@ io.sockets.on("connection", function (socket) {
         console.log("message: " + data["message"]); // log it to the Node.JS output
         io.sockets.emit("message_to_client", { message: data["message"] }) // broadcast the message to other users
     });
+    
+    socket.on('create_chat_room', function (data) {
+        const { roomName, roomCreator } = data;
+        const newChatRoom = {
+            roomName,
+            creator: roomCreator,
+            activeUsers: [roomCreator],
+        };
+        chatRooms.push(newChatRoom);
+        console.log(chatRooms);
+        socket.emit('chat_room_created', { roomName });
+        io.sockets.emit('chat_rooms_list', chatRooms);
+    });
 });
+
 console.log("LISTENING ON PORT 3456");
