@@ -55,6 +55,14 @@
          padding: 10px 20px;
          cursor: pointer;
       }
+
+      button.private-room {
+         background-color: lightpink !important;
+      }
+
+      button.private-room:hover {
+      background-color: rgb(186, 129, 137) !important;
+      }
       
       button:hover {
          background-color: #25A18E;
@@ -97,7 +105,7 @@
 
       <input type="text" id="new_chatroom" placeholder="Enter Room Name">
       <input type="password" id="room-password" placeholder="Enter Room Password" style="display: none;"> 
-      
+
       <label for="private-room-check">
          <input type="checkbox" id="private-room-check" onchange="togglePasswordInput()"> Private Room
        </label>
@@ -154,13 +162,15 @@
      
          // Now, loop over the chatRooms and add them to the list
          chatRooms.forEach(chatRoom => {
-             addChatRoomToList(chatRoom.roomName);
+             addChatRoomToList(chatRoom.roomName, chatRoom.isPrivate);
          });
      });
 
       socketio.on("chat_room_created", function(data) {
-         const roomName = data.roomName;
-         addChatRoomToList(roomName);
+         const { roomName, isPrivate } = data;
+         /* const roomName = data.roomName;
+         const isPrivate = data.isPrivate; */
+         addChatRoomToList(roomName, isPrivate);
       });
 
       // display current active users.
@@ -197,13 +207,18 @@
       }
       
       // a helper function for adding chatroom to a list
-      function addChatRoomToList(roomName) {
+      function addChatRoomToList(roomName, isPrivate) {
          const chatRoomElement = document.createElement("div");
          chatRoomElement.className = "chat-room";
       
          const button = document.createElement("button");
          button.textContent = `Chat Room: ${roomName}`;
-      
+         
+         // check if the room is private, if so change color;
+         if (isPrivate) {
+            button.classList.add("private-room");
+          }
+
          // Add an event listener to the button to handle the click
          button.addEventListener("click", function() {
                updateMessageTitle("Chat Room: " + roomName);
@@ -232,12 +247,24 @@
       function createNewChatRoom() {
          var roomNameInput = document.getElementById("new_chatroom");
          var roomName = roomNameInput.value.trim();
+         var isPrivate = document.getElementById('private-room-check').checked;
+         var password = isPrivate ? document.getElementById('room-password').value : '';
 
+         if (isPrivate && !password) {
+            alert('Please enter a password for the private room.');
+            return;
+        }
          if (roomName) {
             var roomCreator = document.getElementById('username').value;
 
             // Emit a 'create_chat_room' event to notify the server
-            socketio.emit('create_chat_room', { roomName, roomCreator });
+            socketio.emit('create_chat_room', { roomName, roomCreator, isPrivate, password });
+            document.getElementById('new_chatroom').value = '';
+            if (isPrivate) {
+               document.getElementById('room-password').value = '';
+               document.getElementById('private-room-check').checked = false;
+               togglePasswordInput(); // Hide the password field again
+            }
          } else {
             alert('Please enter a chat room name.');
          }

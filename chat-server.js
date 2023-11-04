@@ -46,17 +46,23 @@ io.sockets.on("connection", function (socket) {
     });
 
     socket.on('create_chat_room', function (data) {
-        const { roomName, roomCreator } = data;
+        const { roomName, roomCreator, isPrivate, password } = data;
+        
+        console.log('Is the room private?:', isPrivate);
+
         // Check if room already exists
         const roomExists = chatRooms.some(room => room.roomName === roomName);
+        
         if (!roomExists) {
             const newChatRoom = {
                 roomName,
                 creator: roomCreator,
+                isPrivate,
+                password: isPrivate ? password : null,
                 activeUsers: [] // roomCreator is added as the first user
             };
             chatRooms.push(newChatRoom);
-            socket.emit('chat_room_created', { roomName });
+            socket.emit('chat_room_created', { roomName, isPrivate });
             io.sockets.emit('chat_rooms_list', chatRooms);
         } else {
             // Emit an error to the room creator if room name is taken
