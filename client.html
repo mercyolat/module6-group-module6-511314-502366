@@ -164,12 +164,25 @@
 
      /* ------------Below is all the JS functions being used for socket io communication ------------*/
 
-      function joinChatRoom(roomName) {
-         currentChatRoom = roomName;
-         var userName = document.getElementById('username').value;
-         updateMessageTitle("Chat Room: " + roomName);
-         socketio.emit('join_chat_room', { roomName, userName });
+     function joinChatRoom(roomName) {
+      var userName = document.getElementById('username').value;
+    
+      // Check if the user is trying to join a different room than the current one
+      if (currentChatRoom && currentChatRoom !== roomName) {
+        socketio.emit('leave_chat_room', { roomName: currentChatRoom, userName }, function(ack) {
+          console.log(ack.message); 
+          if (ack.status === 'ok') {
+          }
+        });
       }
+      
+      // Update currentChatRoom and UI regardless of whether it was the same room
+      currentChatRoom = roomName;
+      updateMessageTitle("Chat Room: " + roomName);
+      socketio.emit('join_chat_room', { roomName, userName });
+    
+      updateActiveUsers([]); // Clear the list until the new list is populated
+    }
 
       // Update the chat room title
       function updateMessageTitle(title) {
@@ -187,7 +200,7 @@
          // Add an event listener to the button to handle the click
          button.addEventListener("click", function() {
                updateMessageTitle("Chat Room: " + roomName);
-               joinChatRoom(roomName); // Assuming you have this function to handle joining a room
+               joinChatRoom(roomName);
          });
       
          chatRoomElement.appendChild(button);

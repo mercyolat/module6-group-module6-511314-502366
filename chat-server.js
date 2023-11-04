@@ -53,7 +53,7 @@ io.sockets.on("connection", function (socket) {
             const newChatRoom = {
                 roomName,
                 creator: roomCreator,
-                activeUsers: [roomCreator] // roomCreator is added as the first user
+                activeUsers: [] // roomCreator is added as the first user
             };
             chatRooms.push(newChatRoom);
             socket.emit('chat_room_created', { roomName });
@@ -82,17 +82,28 @@ io.sockets.on("connection", function (socket) {
     });
 
     // leave room event handler.
-    socket.on('leave_chat_room', function (data) {
-        const { roomName, userName } = data;
-        const room = chatRooms.find(room => room.roomName === roomName);
-        if (room) {
+    socket.on('leave_chat_room', function (data, callback) {
+    const { roomName, userName } = data;
+    const room = chatRooms.find(room => room.roomName === roomName);
+    
+    if (room) {
+        if (room.activeUsers.includes(userName)) {
             room.activeUsers = room.activeUsers.filter(user => user !== userName);
             socket.leave(roomName);
             io.to(roomName).emit('user_left_room', { userName, roomName });
-            // Emit updated active users list
             io.to(roomName).emit('active_users', room.activeUsers);
+
+            // Acknowledgment to the leaving user
+            callback({ status: 'ok', message: `Left ${roomName}` });
+        } else {
+            // User was not in the room's activeUsers array
+            callback({ status: 'error', message: `User ${userName} was not in ${roomName}` });
         }
-    });
+    } else {
+        // Room not found
+        callback({ status: 'error', message: `Room ${roomName} not found` });
+    }
+});
 });
 
 console.log("LISTENING ON PORT 3456");
