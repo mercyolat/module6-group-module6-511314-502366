@@ -186,28 +186,32 @@
 
       socketio.on("chat_room_created", function(data) {
          const roomName = data.roomName;
-
-         const chatRoomElement = document.createElement("div");
-         chatRoomElement.className = "chat-room";
-
-         const button = document.createElement("button");
-         button.textContent = `Chat Room: ${roomName}`;
-
-         // Add an event listener to the button to handle the click
-         button.addEventListener("click", function() {
-            // Update the chat room title when the button is clicked
-            updateMessageTitle("Chat Room: " + roomName);
-         });
-
-         chatRoomElement.appendChild(button);
-         const chatroomContainer = document.getElementById("chatroom-container");
-         chatroomContainer.appendChild(chatRoomElement);
+         addChatRoomToList(roomName);
       });
 
       // Update the chat room title
       function updateMessageTitle(title) {
          document.getElementById("message-title").textContent = title;
       }
+
+      // a module for adding chatroom to a list
+      function addChatRoomToList(roomName) {
+         const chatRoomElement = document.createElement("div");
+         chatRoomElement.className = "chat-room";
+     
+         const button = document.createElement("button");
+         button.textContent = `Chat Room: ${roomName}`;
+     
+         // Add an event listener to the button to handle the click
+         button.addEventListener("click", function() {
+             updateMessageTitle("Chat Room: " + roomName);
+             joinChatRoom(roomName); // Assuming you have this function to handle joining a room
+         });
+     
+         chatRoomElement.appendChild(button);
+         const chatroomContainer = document.getElementById("chatroom-container");
+         chatroomContainer.appendChild(chatRoomElement);
+     }
       
    </script>
 </body>
