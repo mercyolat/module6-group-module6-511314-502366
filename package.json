@@ -1,5 +1,7 @@
 {
   "dependencies": {
-    "socket.io": "^4.7.2"
+    "mime": "^3.0.0",
+    "socket.io": "^4.7.2",
+    "ws": "^8.14.2"
   }
 }

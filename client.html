@@ -91,6 +91,15 @@
          width: 100%;
          margin: 20px 0 20px 530px;
       }
+      .raise-hand-notification {
+         background-color: #ffcc00;
+         color: #333;
+         border: 1px solid #ff9900;
+         border-radius: 4px;
+         padding: 5px;
+         margin-top: 10px;
+      }
+
    </style>
 </head>
 <body>
@@ -111,7 +120,6 @@
        </label>
 
       <button onclick="createNewChatRoom()">Create Room</button>
-      <div id="chatlog"></div>
    </div>
 
    <div class="chat_container" id="chatroom-container" style="display: none;">
@@ -126,12 +134,25 @@
 
    <div class="message_container" id="message-container" style="display: none;">
       <h2 id="message-title">Chat Room: __</h2>
-      <div id="active-users">Active Users: </div>
+      <table id="active-users">
+         <caption>Active Users:</caption>
+         <thead>
+            <tr>           
+               <th>User</th>
+               <th>Status</th>    
+            </tr>
+         </thead>
+         <tbody>
+
+         </tbody>
+     </table>
+     <button id="raise-hand-button" onclick="raiseHand()">Raise Hand</button>
       <!-- Container for sending messages -->
       <div id="message-sender">
           <input type="text" id="message_sender_input" placeholder="Type your message">
           <button onclick="sendMessage()">Send</button>
       </div>
+      <div id="chatlog"></div>
    </div>
 
    <script src="/socket.io/socket.io.js"></script>
@@ -155,6 +176,7 @@
           document.getElementById("chatlog").appendChild(document.createTextNode(data['message']));
       });
 
+      // display the chat rooms list
       socketio.on('chat_rooms_list', function(chatRooms) {
          // First, clear the existing list
          const chatroomContainer = document.getElementById('chatroom-container');
@@ -166,6 +188,7 @@
          });
      });
 
+      // display the chat room created
       socketio.on("chat_room_created", function(data) {
          const { roomName, isPrivate } = data;
          /* const roomName = data.roomName;
@@ -174,14 +197,39 @@
       });
 
       // display current active users.
-      socketio.on('active_users', function(users) {
-         updateActiveUsers(users);
+      socketio.on('active_users', function(data) {
+         const { room, activeUsers } = data;
+         updateActiveUsers(activeUsers, room);
      });
 
+     // displays when a user joins room and it udpates the active users list
+      socketio.on('joined_chat_room', function(data) {
+         console.log(data);
+         const { room, activeUsers } = data;
+         updateMessageTitle("Chat Room: " + room.roomName);
+         updateActiveUsers(activeUsers, room);
+      });
+
+      // Display an error message if the user tries to join a room that doesn't exist
+      socketio.on('joined_room_error', function(data) {
+         alert(data.message);
+      });
+
+      // displays the raised hand feature
+      socketio.on('raised_hand', function(data) {
+         const { userName, roomName } = data;
+         if (currentChatRoom === roomName) {
+            // Check if the raised hand is in the currently displayed room
+            const notification = document.createElement('div');
+            notification.className = 'raise-hand-notification';
+            notification.textContent = `${userName} raised their hand`;
+            document.getElementById('message-sender').appendChild(notification);
+         }
+      });
 
      /* ------------Below is all the JS functions being used for socket io communication ------------*/
 
-     function joinChatRoom(roomName) {
+     function joinChatRoom(roomName, isPrivate) {
       var userName = document.getElementById('username').value;
     
       // Check if the user is trying to join a different room than the current one
@@ -192,10 +240,14 @@
           }
         });
       }
+
+      if (isPrivate) {
+         var password = prompt('Please enter the password for the private room:');
+         socketio.emit('join_chat_room', { roomName, userName, password });
+      }
       
       // Update currentChatRoom and UI regardless of whether it was the same room
       currentChatRoom = roomName;
-      updateMessageTitle("Chat Room: " + roomName);
       socketio.emit('join_chat_room', { roomName, userName });
     
       updateActiveUsers([]); // Clear the list until the new list is populated
@@ -203,7 +255,7 @@
 
       // Update the chat room title
       function updateMessageTitle(title) {
-      document.getElementById("message-title").textContent = title;
+         document.getElementById("message-title").textContent = title;
       }
       
       // a helper function for adding chatroom to a list
@@ -221,8 +273,7 @@
 
          // Add an event listener to the button to handle the click
          button.addEventListener("click", function() {
-               updateMessageTitle("Chat Room: " + roomName);
-               joinChatRoom(roomName);
+            joinChatRoom(roomName, isPrivate);
          });
       
          chatRoomElement.appendChild(button);
@@ -231,12 +282,37 @@
       }
 
       // This is a helper function for updating active users in the current chat room.
-      function updateActiveUsers(users) {
+      function updateActiveUsers(users, room) {
          console.log('Received active users list:', users);
-         const activeUsersDiv = document.getElementById('active-users');
-         activeUsersDiv.innerHTML = 'Active Users: ' + users.join(', ');
+         var currentUser = document.getElementById('username').value;
+         const userTable = document.getElementById('active-users');
+         const body = userTable.getElementsByTagName('tbody')[0];
+         body.innerHTML = '';
+         for (let i =0; i<users.length; i++){
+            let user = users[i];
+            let row = document.createElement('tr');
+            body.appendChild(row);
+            if (currentUser == room.creator){
+               row.innerHTML = `<td>${user}</td><td><button>Kick Out</button><button>Ban</button><button>Raise Hand</button></td>`;
+               row.getElementsByTagName('button')[0].addEventListener('click', function() {
+                  socketio.emit('kick_out_user', { roomName: room.roomName, userName: user });
+               });
+               row.getElementsByTagName('button')[1].addEventListener('click', function() {
+                  socketio.emit('ban_user', { roomName: room.roomName, userName: user });
+               });
+               row.getElementsByTagName('button')[2].addEventListener('click', function() {
+                  socketio.emit('raise_hand', { roomName: room.roomName, userName: user });
+               });
+            } else {
+               row.innerHTML = `<td>${user}</td><td></td>`;
+               row.getElementsByTagName('button')[0].addEventListener('click', function() {
+                  socketio.emit('raise_hand', { roomName: room.roomName, userName: user });
+               });
+            }
+         }
       }
 
+      // sends message to the server
       function sendMessage() {
          var msg = document.getElementById("message_sender_input").value;
          socketio.emit("message_to_server", { message: msg, roomName: currentChatRoom });
@@ -244,6 +320,7 @@
          document.getElementById("message_sender_input").value = "";
       }
 
+      // creates a new chat room
       function createNewChatRoom() {
          var roomNameInput = document.getElementById("new_chatroom");
          var roomName = roomNameInput.value.trim();
@@ -270,6 +347,7 @@
          }
       }
 
+      // signs in the user
       function signIn(roomId) {
       const username = document.getElementById('username').value;
       if (username) {
@@ -302,6 +380,13 @@
       }
     }
       
+    //raise hand function
+    function raiseHand() {
+      const roomName = currentChatRoom;
+      const userName = document.getElementById('username').value;
+
+      socketio.emit('raise_hand', { roomName, userName });
+   }
    </script>
 </body>
 </html>
